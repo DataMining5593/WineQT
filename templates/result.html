@@ -7,6 +7,12 @@
 </head>
 <body>
     <h1>Wine Quality Classifier</h1>
+
+
+    <p>The predicted wine quality by the ridge regression is: <strong>{{ ridge }}</strong></p>
+
+
+
     <form action="/classify" method="POST">
         <label for="color">Color:</label>
         <select name="color" id="color" required>
