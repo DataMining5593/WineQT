@@ -58,7 +58,7 @@ def classify():
     if request.method == "POST":
         # Get form data
         try:
-            color = 0 if request.form["color"] == "red" else 1
+            color = 1 if request.form["color"] == "red" else 0
             fixed_acidity = float(request.form["fixed_acidity"])
             volatile_acidity = float(request.form["volatile_acidity"])
             citric_acid = float(request.form["citric_acid"])
@@ -81,7 +81,7 @@ def classify():
             # Predict quality using the model
             # predicted_quality = model.predict(features)[0]
             predictions = mining.getModelsResult(features)
-            return render_template("result.html", ridge=predictions[0])
+            return render_template("result.html", grubb=predictions[0], ridge=predictions[1])
             
         
         except Exception as e:

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
+from scipy.stats import t
 
 
 # declare all models
@@ -24,16 +25,23 @@ def modelsTraining():
 # output the reult of all the models
 def getModelsResult(data):
     global ridge_model
+    global whole_train
 
 
     result = []
+
+
+    datasetWithNew = np.concatenate((whole_train, data), axis=0)
+    
+    result.append(grubbs_test(datasetWithNew))
+
 
     result.append(ridge_predict(data, ridge_model))
 
     return result
 
 
-## Load the dataset
+################################## Load the dataset ######################""
 sample_train = None
 sample_test = None
 label_train = None
@@ -79,10 +87,12 @@ def loadTrainAndTest():
 
 
 
-
+########################## CLASSIFICATION ################
 ## Ridge regression 
 # train Ridge Regression
 def ridge_fit(lamda):
+    global whole_train
+    global whole_label
     
     X = np.concatenate([np.ones((whole_train.shape[0], 1)), whole_train], axis=1)  # intercept bias
     XtX = np.dot(X.T, X)  # X^T * X
@@ -101,3 +111,37 @@ def ridge_predict(data, beta):
 
     return int(round(label_test_pred, 0))
 
+
+
+########################## ANOMALY DETECTION ################
+def grubbs_test(data, alpha=0.15):
+    n = len(data)
+    last_outlier_found = True
+    is_outlier = False
+
+    while n > 2 and last_outlier_found and not is_outlier:
+
+        centroid = np.mean(data, axis=0)  # Mean vector (centroid)
+        distances = np.linalg.norm(data - centroid, axis=1)  # Euclidean distances to the centroid
+        
+
+        max_dist_index = np.argmax(distances)
+        max_distance = distances[max_dist_index]
+        std_dev = np.std(distances, ddof=1)  # Standard deviation of distances
+        g_calculated = max_distance / std_dev  # Grubbs' test statistic
+
+        t_crit = t.ppf(1 - alpha / (2 * n), df=n - 2)  # Two-tailed t-test critical value
+        g_critical = ((n - 1) / np.sqrt(n)) * np.sqrt(t_crit**2 / (n - 2 + t_crit**2))
+
+
+        if g_calculated > g_critical:
+
+            if max_dist_index == n - 1:
+                is_outlier = True
+            else:
+                data = np.delete(data, max_dist_index, axis=0)  # Remove the outlier
+                n = len(data)
+        else:
+            last_outlier_found = False
+
+    return is_outlier
