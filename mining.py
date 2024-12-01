@@ -7,17 +7,21 @@ from scipy.stats import t
 
 # declare all models
 ridge_model = None
+logistic_model = None
+logistic_bias = None
 
 
 # Train all the models
 def modelsTraining():
     global ridge_model
+    global logistic_model
+    global logistic_bias
 
     loadTrainAndTest()
 
 
     ridge_model = ridge_fit(60) # lambda found in data visualise
-
+    logistic_model, logistic_bias = logistic_fit(50000, 0.01)
 
     return None
 
@@ -25,6 +29,8 @@ def modelsTraining():
 # output the reult of all the models
 def getModelsResult(data):
     global ridge_model
+    global logistic_model
+    global logistic_bias
     global whole_train
 
 
@@ -37,6 +43,7 @@ def getModelsResult(data):
 
 
     result.append(ridge_predict(data, ridge_model))
+    result.append(logistic_predict(data, logistic_model, logistic_bias))
 
     return result
 
@@ -112,6 +119,72 @@ def ridge_predict(data, beta):
     return int(round(label_test_pred, 0))
 
 
+
+
+
+
+## Logistic regression
+def softmax(z):
+    exp_z = np.exp(z - np.max(z, axis=1, keepdims=True))  # For numerical stability
+    return exp_z / np.sum(exp_z, axis=1, keepdims=True)
+
+def one_hot_encode(y, num_classes):
+    y = y.astype(int)
+    y = y -min(y)
+    m = y.shape[0]
+    one_hot = np.zeros((m, num_classes))
+    one_hot[np.arange(m), y] = 1
+    return one_hot
+
+
+
+def logistic_fit(num_ite, learning_rate):
+    global whole_train
+    global whole_label
+
+    m, n = whole_train.shape
+    num_classes = len(np.unique(whole_label))  # Determine the number of classes
+
+    # Initialize weights with small random values
+    weights = np.random.randn(n, num_classes) * 0.01
+    bias = np.zeros(num_classes)
+
+    # One-hot encode the labels
+    y_one_hot = one_hot_encode(whole_label, num_classes)
+
+    for i in range(num_ite):
+        # Compute linear model
+        z = np.dot(whole_train, weights) + bias
+
+        # Apply softmax function
+        probabilities = softmax(z)
+
+        # Compute gradients
+        dw = (1 / m) * np.dot(whole_train.T, (probabilities - y_one_hot))
+        db = (1 / m) * np.sum(probabilities - y_one_hot, axis=0)
+
+        # Optional: Clip gradients to avoid explosion
+        max_grad_value = 10
+        dw = np.clip(dw, -max_grad_value, max_grad_value)
+        db = np.clip(db, -max_grad_value, max_grad_value)
+
+        # Update weights and bias
+        weights -= learning_rate * dw
+        bias -= learning_rate * db
+
+        # # Print loss every 100 iterations
+        # if i % 100 == 0:
+        #     loss = -np.mean(np.sum(y_one_hot * np.log(np.clip(probabilities, 1e-9, 1 - 1e-9)), axis=1))
+        #     print(f"Iteration {i}: Loss = {loss:.4f}")
+    
+    return weights, bias
+
+
+def logistic_predict(data, beta, bias):
+    z = np.dot(data, beta) + bias
+    probabilities = softmax(z)
+    return np.argmax(probabilities, axis=1)[0]
+    
 
 ########################## ANOMALY DETECTION ################
 def grubbs_test(data, alpha=0.15):
