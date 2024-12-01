@@ -81,7 +81,7 @@ def classify():
             # Predict quality using the model
             # predicted_quality = model.predict(features)[0]
             predictions = mining.getModelsResult(features)
-            return render_template("result.html", grubb=predictions[0], ridge=predictions[1], logistic=predictions[2])
+            return render_template("result.html", grubb=predictions[0], ridge=predictions[1], logistic=predictions[2], kmeans=predictions[3], decisionTree=predictions[4])
             
         
         except Exception as e:
